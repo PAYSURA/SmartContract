@@ -458,7 +458,7 @@ contract PurchasableToken is PausableToken {
 }
 
 /**
- * @title WithdrawAble
+ * @title Withdrawable
  * @dev Contract allows to withdraw ether and ERC20 token
  */
 contract Withdrawable is Ownable {
