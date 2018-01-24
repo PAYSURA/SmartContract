@@ -471,7 +471,7 @@ contract Withdrawable is Ownable {
         token.transfer(beneficiary, amount);
     }
     
-    /** @dev called by the owner to transfer 'etherAmount' ether to 'beneficiary' */
+    /** @dev called by the owner to transfer 'etherAmount' to 'beneficiary' */
     function withdrawEther(address beneficiary, uint256 etherAmount) onlyOwner public {
         beneficiary.transfer(etherAmount);
     }
