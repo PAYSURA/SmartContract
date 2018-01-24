@@ -318,73 +318,10 @@ contract Ownable {
 
 
 /**
- * @title Pausable
- * @dev Allows an emergency stop mechanism.
- * See https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/contracts/lifecycle/Pausable.sol
- */
-contract Pausable is Ownable {
-    event Pause();
-    event Unpause();
-
-    bool public paused = false;
-
-    /**
-     * @dev modifier to allow actions only when the contract IS paused
-     */
-    modifier whenNotPaused {
-        require(!paused);
-        _;
-    }
-
-    /**
-     * @dev modifier to allow actions only when the contract IS NOT paused
-     */
-    modifier whenPaused {
-        require(paused);
-        _;
-    }
-
-    /**
-     * @dev called by the owner to pause, triggers stopped state
-     */
-    function pause() onlyOwner whenNotPaused public returns (bool) {
-        paused = true;
-        Pause();
-        return true;
-    }
-
-    /**
-     * @dev called by the owner to unpause, returns to normal state
-     */
-    function unpause() onlyOwner whenPaused public returns (bool) {
-        paused = false;
-        Unpause();
-        return true;
-    }
-}
-
-/**
- * @title PausableToken
- * @dev StandardToken with pausable transfers
- */
-contract PausableToken is StandardToken, Pausable {
-    function transfer(address _to, uint256 _value) whenNotPaused public returns (bool) {
-        super.transfer(_to, _value);
-        return true;
-    }
-
-    function transferFrom(address _from, address _to, uint256 _value) whenNotPaused public returns (bool) {
-        super.transferFrom(_from, _to, _value);
-        return true;
-    }
-}
-
-
-/**
  * @title PurchasableToken
  * @dev Allows buying IPC token from this contract
  */
-contract PurchasableToken is PausableToken {
+contract PurchasableToken is StandardToken, Ownable {
     event PurchaseUnlocked();
     event PurchaseLocked();
     event UpdatedExchangeRate(uint256 newPrice);
@@ -441,7 +378,7 @@ contract PurchasableToken is PausableToken {
     }
     
     /** @dev buy ipc token by sending at least 'minimumEtherAmount' */
-    function buyIPC() payable isPurchasable whenNotPaused public returns (uint256) {
+    function buyIPC() payable isPurchasable public returns (uint256) {
         require(msg.value >= minimumEtherAmount);
         uint256 tokenAmount = safeMul(msg.value, exchangeRate);
         tokenAmount = safeDiv(tokenAmount, 1 ether);
@@ -471,7 +408,7 @@ contract Withdrawable is Ownable {
         token.transfer(beneficiary, amount);
     }
     
-    /** @dev called by the owner to transfer 'etherAmount' ether to 'beneficiary' */
+    /** @dev called by the owner to transfer 'etherAmount' to 'beneficiary' */
     function withdrawEther(address beneficiary, uint256 etherAmount) onlyOwner public {
         beneficiary.transfer(etherAmount);
     }
