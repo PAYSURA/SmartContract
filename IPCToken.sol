@@ -486,8 +486,8 @@ contract Withdrawable is Ownable {
 contract IPCToken is UpgradeableToken, PurchasableToken, Withdrawable {
 
     // Public variables of the token
-    string public name = "Test";
-    string public symbol = "TestToken";
+    string public name = "International PayReward Coin";
+    string public symbol = "IPC";
     uint8 public decimals = 12;
     // Distributions of the total supply
     // 264 mio for crowdsale
