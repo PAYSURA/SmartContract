@@ -305,14 +305,14 @@ contract Ownable {
     /**
      * @dev Allows the current owners to transfer control of the contract to a new owner.
      * @param newOwner The address to transfer ownership to.
-     * @param oldOwner Select first or second owner to replace
+     * @param replaceOwnerOne Replace 'ownerOne'?
+     * @param replaceOwnerTwo Replace 'ownerTwo'?
      */
-    function transferOwnership(address newOwner, uint oldOwner) onlyOwner public {
+    function transferOwnership(address newOwner, bool replaceOwnerOne, bool replaceOwnerTwo) onlyOwner public {
         require(newOwner != 0x0);
-        require(oldOwner == 1 || oldOwner == 2);
-        if(oldOwner == 1) {
-            ownerOne = newOwner;
-        } else ownerTwo = newOwner;
+        require(replaceOwnerOne || replaceOwnerTwo);
+        if(replaceOwnerOne) ownerOne = newOwner;
+        if(replaceOwnerTwo) ownerTwo = newOwner;
     }
 }
 
