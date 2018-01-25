@@ -398,7 +398,7 @@ contract PurchasableToken is PausableToken {
     
     /** @dev modifier to allow token purchase only when purchase is unlocked and rate > 0 */
     modifier isPurchasable {
-        require(purchasable && exchangeRate > 0);
+        require(purchasable && exchangeRate > 0 && minimumEtherAmount > 0);
         _;
     }
     
