@@ -111,7 +111,7 @@ contract StandardToken is ERC20, SafeMath {
     function transferFrom(address _from, address _to, uint256 _value) onlyPayloadSize(3 * 32) public returns (bool) {
         uint256 _allowance = allowance[_from][msg.sender];
         
-        // Check (_value > _allowance) is already done in safeSub(_allowance, _value)
+        // Check (_value <= _allowance) is already done in safeSub(_allowance, _value)
         allowance[_from][msg.sender] = safeSub(_allowance, _value);
         safeTransfer(_from, _to, _value);
         return true;
@@ -394,7 +394,7 @@ contract PurchasableToken is PausableToken {
     // minimum amount of ether you have to spend to buy some tokens
     uint256 public minimumEtherAmount;
     address public vendorWallet;
-    uint256 public exchangeRate; // 'exchangeRate' tokens = 1 ether
+    uint256 public exchangeRate; // 'exchangeRate' tokens = 1 ether (consider decimals of token)
     
     /** @dev modifier to allow token purchase only when purchase is unlocked and rate > 0 */
     modifier isPurchasable {
@@ -418,7 +418,7 @@ contract PurchasableToken is PausableToken {
         return true;
     }
 
-    /** @dev called by the owner to set a new rate */
+    /** @dev called by the owner to set a new rate (consider decimals of token) */
     function setExchangeRate(uint256 newExchangeRate) onlyOwner public returns (bool) {
         require(newExchangeRate > 0);
         exchangeRate = newExchangeRate;
@@ -445,7 +445,9 @@ contract PurchasableToken is PausableToken {
         require(msg.value >= minimumEtherAmount);
         uint256 tokenAmount = safeMul(msg.value, exchangeRate);
         tokenAmount = safeDiv(tokenAmount, 1 ether);
-        require(allowance[vendorWallet][this] >= tokenAmount);
+        uint256 _allowance = allowance[vendorWallet][this];
+        // Check (tokenAmount <= _allowance) is already done in safeSub(_allowance, tokenAmount)
+        allowance[vendorWallet][this] = safeSub(_allowance, tokenAmount);
         balanceOf[msg.sender] = safeAdd(balanceOf[msg.sender], tokenAmount);
         balanceOf[vendorWallet] = safeSub(balanceOf[vendorWallet], tokenAmount);
         Purchase(msg.sender, msg.value, tokenAmount);
