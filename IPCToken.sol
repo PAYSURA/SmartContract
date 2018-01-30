@@ -388,7 +388,6 @@ contract PurchasableToken is PausableToken {
     event PurchaseUnlocked();
     event PurchaseLocked();
     event UpdatedExchangeRate(uint256 newRate);
-    event Purchase(address buyer, uint256 etherAmount, uint256 tokenAmount);
     
     bool public purchasable = false;
     // minimum amount of ether you have to spend to buy some tokens
@@ -440,6 +439,20 @@ contract PurchasableToken is PausableToken {
         return true;
     }
     
+    /** @dev called by the owner to make the purchase preparations 
+        ('approve' must be called separately from 'vendorWallet') 
+    */
+    function setPurchaseValuesAndUnlock(uint256 newExchangeRate, 
+                                        uint256 newMinimumEtherAmount, 
+                                        address newVendorWallet,
+                                        bool releasePurchase) onlyOwner public returns (bool) {
+        setExchangeRate(newExchangeRate);
+        setMinimumEtherAmount(newMinimumEtherAmount);
+        setVendorWallet(newVendorWallet);
+        if (releasePurchase) unlockPurchase();
+        return true;
+    }
+    
     /** @dev buy ipc token by sending at least 'minimumEtherAmount' */
     function buyIPC() payable isPurchasable whenNotPaused public returns (uint256) {
         require(msg.value >= minimumEtherAmount);
@@ -450,7 +463,7 @@ contract PurchasableToken is PausableToken {
         allowance[vendorWallet][this] = safeSub(_allowance, tokenAmount);
         balanceOf[msg.sender] = safeAdd(balanceOf[msg.sender], tokenAmount);
         balanceOf[vendorWallet] = safeSub(balanceOf[vendorWallet], tokenAmount);
-        Purchase(msg.sender, msg.value, tokenAmount);
+        Transfer(vendorWallet, msg.sender, tokenAmount);
         return tokenAmount;
     }
     
