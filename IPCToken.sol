@@ -387,7 +387,7 @@ contract PausableToken is StandardToken, Pausable {
 contract PurchasableToken is PausableToken {
     event PurchaseUnlocked();
     event PurchaseLocked();
-    event UpdatedExchangeRate(uint256 newPrice);
+    event UpdatedExchangeRate(uint256 newRate);
     event Purchase(address buyer, uint256 etherAmount, uint256 tokenAmount);
     
     bool public purchasable = false;
