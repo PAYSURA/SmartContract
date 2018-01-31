@@ -286,8 +286,7 @@ contract Ownable {
     address public ownerTwo;
 
     /**
-     * @dev The Ownable constructor sets one of the owners of the contract to the sender
-     * account.
+     * @dev The Ownable constructor sets both owners of the contract to the sender account.
      */
     function Ownable() public {
         ownerOne = msg.sender;
@@ -304,7 +303,7 @@ contract Ownable {
 
     /**
      * @dev Allows the current owners to transfer control of the contract to a new owner.
-     * @param newOwner The address to transfer ownership to.
+     * @param newOwner The address to transfer ownership to
      * @param replaceOwnerOne Replace 'ownerOne'?
      * @param replaceOwnerTwo Replace 'ownerTwo'?
      */
@@ -395,7 +394,9 @@ contract PurchasableToken is PausableToken {
     address public vendorWallet;
     uint256 public exchangeRate; // 'exchangeRate' tokens = 1 ether (consider decimals of token)
     
-    /** @dev modifier to allow token purchase only when purchase is unlocked and rate > 0 */
+    /** 
+     * @dev modifier to allow token purchase only when purchase is unlocked and rate > 0 
+     */
     modifier isPurchasable {
         require(purchasable && exchangeRate > 0 && minimumWeiAmount > 0);
         _;
@@ -439,9 +440,10 @@ contract PurchasableToken is PausableToken {
         return true;
     }
     
-    /** @dev called by the owner to make the purchase preparations 
-        ('approve' must be called separately from 'vendorWallet') 
-    */
+    /** 
+     * @dev called by the owner to make the purchase preparations 
+     * ('approve' must be called separately from 'vendorWallet') 
+     */
     function setPurchaseValuesAndUnlock(uint256 newExchangeRate, 
                                         uint256 newMinimumWeiAmount, 
                                         address newVendorWallet,
@@ -453,8 +455,8 @@ contract PurchasableToken is PausableToken {
         return true;
     }
     
-    /** @dev buy ipc token by sending at least 'minimumWeiAmount' */
-    function buyIPC() payable isPurchasable whenNotPaused public returns (uint256) {
+    /** @dev buy token by sending at least 'minimumWeiAmount' wei */
+    function buyToken() payable isPurchasable whenNotPaused public returns (uint256) {
         require(msg.value >= minimumWeiAmount);
         uint256 tokenAmount = safeMul(msg.value, exchangeRate);
         tokenAmount = safeDiv(tokenAmount, 1 ether);
@@ -468,17 +470,74 @@ contract PurchasableToken is PausableToken {
     }
     
     function () payable public {
-        buyIPC();
+        buyToken();
     }
 }
 
+
+/**
+ * @title CrowdsaleToken
+ * @dev Allows token transfer after the crowdsale has ended
+ */
+contract CrowdsaleToken is PurchasableToken {
+    
+    address public icoAgent;
+    bool public crowdsaleLock = true;
+
+    /**
+     * @dev modifier to allow token transfer only when '_sender' is icoAgent or crowdsale has ended 
+     */
+    modifier canTransfer(address _sender) {
+        require(!crowdsaleLock || _sender == icoAgent);
+        _;
+    }
+    
+    /**
+     * @dev Can only be called by the icoAgent
+     */
+    modifier onlyIcoAgent {
+        require(msg.sender == icoAgent);
+        _;
+    }
+    
+    /**
+     * @dev Construction with an icoAgent
+     */
+    function CrowdsaleToken(address _icoAgent) public {
+        icoAgent = _icoAgent;
+    }
+
+    /** @dev called by the owner to set a new icoAgent */
+    function setIcoAgent(address _icoAgent) onlyOwner public returns (bool) {
+        icoAgent = _icoAgent;
+        return true;
+    }
+    
+    /** @dev called by the icoAgent to release token transfer */
+    function releaseTokenTransfer() onlyIcoAgent public returns (bool) {
+        crowdsaleLock = false;
+        return true;
+    }
+
+    function transfer(address _to, uint _value) canTransfer(msg.sender) public returns (bool) {
+        // Call PausableToken.transfer()
+        return super.transfer(_to, _value);
+    }
+
+    function transferFrom(address _from, address _to, uint _value) canTransfer(_from) public returns (bool) {
+        // Call PausableToken.transferFrom()
+        return super.transferFrom(_from, _to, _value);
+    }
+}
+
+
 /**
  * @title Withdrawable
- * @dev Contract allows to withdraw ether and ERC20 token
+ * @dev Contract allows to withdraw ether and erc20 token
  */
 contract Withdrawable is Ownable {
     
-    /** @dev withdraw ERC20 token from this contract */
+    /** @dev withdraw erc20 token from this contract */
     function withdrawToken(address beneficiary, address _token) onlyOwner public {
         ERC20 token = ERC20(_token);
         uint256 amount = token.balanceOf(this);
@@ -498,11 +557,11 @@ contract Withdrawable is Ownable {
  * @dev IPC Token contract
  * @author Paysura - <contact@paysura.com>
  */
-contract IPCToken is UpgradeableToken, PurchasableToken, Withdrawable {
+contract IPCToken is UpgradeableToken, CrowdsaleToken, Withdrawable {
 
     // Public variables of the token
-    string public name = "International PayReward Coin";
-    string public symbol = "IPC";
+    string public name = "Hallo";
+    string public symbol = "Hi";
     uint8 public decimals = 12;
     // Distributions of the total supply
     // 264 mio for crowdsale
@@ -527,7 +586,7 @@ contract IPCToken is UpgradeableToken, PurchasableToken, Withdrawable {
         address addressOfCrBen, 
         address addressOfRew,
         address addressOfDev
-        ) public UpgradeableToken(msg.sender) {
+        ) public UpgradeableToken(msg.sender) CrowdsaleToken(addressOfCrBen) {
         // Assign the initial tokens to the addresses
         balanceOf[addressOfCrBen] = cr;
         balanceOf[addressOfRew] = rew;
