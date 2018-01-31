@@ -390,14 +390,14 @@ contract PurchasableToken is PausableToken {
     event UpdatedExchangeRate(uint256 newRate);
     
     bool public purchasable = false;
-    // minimum amount of ether you have to spend to buy some tokens
-    uint256 public minimumEtherAmount;
+    // minimum amount of wei you have to spend to buy some tokens
+    uint256 public minimumWeiAmount;
     address public vendorWallet;
     uint256 public exchangeRate; // 'exchangeRate' tokens = 1 ether (consider decimals of token)
     
     /** @dev modifier to allow token purchase only when purchase is unlocked and rate > 0 */
     modifier isPurchasable {
-        require(purchasable && exchangeRate > 0 && minimumEtherAmount > 0);
+        require(purchasable && exchangeRate > 0 && minimumWeiAmount > 0);
         _;
     }
     
@@ -425,10 +425,10 @@ contract PurchasableToken is PausableToken {
         return true;
     }
     
-    /** @dev called by the owner to set the minimum ether amount to buy some token */
-    function setMinimumEtherAmount(uint256 newMinimumEtherAmount) onlyOwner public returns (bool) {
-        require(newMinimumEtherAmount > 0);
-        minimumEtherAmount = newMinimumEtherAmount;
+    /** @dev called by the owner to set the minimum wei amount to buy some token */
+    function setMinimumWeiAmount(uint256 newMinimumWeiAmount) onlyOwner public returns (bool) {
+        require(newMinimumWeiAmount > 0);
+        minimumWeiAmount = newMinimumWeiAmount;
         return true;
     }
     
@@ -443,19 +443,19 @@ contract PurchasableToken is PausableToken {
         ('approve' must be called separately from 'vendorWallet') 
     */
     function setPurchaseValuesAndUnlock(uint256 newExchangeRate, 
-                                        uint256 newMinimumEtherAmount, 
+                                        uint256 newMinimumWeiAmount, 
                                         address newVendorWallet,
                                         bool releasePurchase) onlyOwner public returns (bool) {
         setExchangeRate(newExchangeRate);
-        setMinimumEtherAmount(newMinimumEtherAmount);
+        setMinimumWeiAmount(newMinimumWeiAmount);
         setVendorWallet(newVendorWallet);
         if (releasePurchase) unlockPurchase();
         return true;
     }
     
-    /** @dev buy ipc token by sending at least 'minimumEtherAmount' */
+    /** @dev buy ipc token by sending at least 'minimumWeiAmount' */
     function buyIPC() payable isPurchasable whenNotPaused public returns (uint256) {
-        require(msg.value >= minimumEtherAmount);
+        require(msg.value >= minimumWeiAmount);
         uint256 tokenAmount = safeMul(msg.value, exchangeRate);
         tokenAmount = safeDiv(tokenAmount, 1 ether);
         uint256 _allowance = allowance[vendorWallet][this];
@@ -486,9 +486,9 @@ contract Withdrawable is Ownable {
         token.transfer(beneficiary, amount);
     }
     
-    /** @dev called by the owner to transfer 'etherAmount' to 'beneficiary' */
-    function withdrawEther(address beneficiary, uint256 etherAmount) onlyOwner public {
-        beneficiary.transfer(etherAmount);
+    /** @dev called by the owner to transfer 'weiAmount' wei to 'beneficiary' */
+    function withdrawEther(address beneficiary, uint256 weiAmount) onlyOwner public {
+        beneficiary.transfer(weiAmount);
     }
 }
 
