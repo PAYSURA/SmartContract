@@ -71,8 +71,8 @@ contract StandardToken is ERC20, SafeMath {
     *
     * http://vessenes.com/the-erc20-short-address-attack-explained/
     */
-    modifier onlyPayloadSize(uint size) {
-        require(!(msg.data.length < size + 4));
+    modifier onlyPayloadSize(uint numwords) {
+        require(!(msg.data.length < numwords * 32 + 4));
         _;
     }
     
@@ -97,7 +97,7 @@ contract StandardToken is ERC20, SafeMath {
      * @param _to address The address which you want to transfer to
      * @param _value uint the amout of tokens to be transfered
      */
-    function transfer(address _to, uint256 _value) onlyPayloadSize(2 * 32) public returns (bool) {
+    function transfer(address _to, uint256 _value) onlyPayloadSize(2) public returns (bool) {
         safeTransfer(msg.sender, _to, _value);
         return true;
     }
@@ -108,7 +108,7 @@ contract StandardToken is ERC20, SafeMath {
      * @param _to address The address which you want to transfer to
      * @param _value uint the amout of tokens to be transfered
      */
-    function transferFrom(address _from, address _to, uint256 _value) onlyPayloadSize(3 * 32) public returns (bool) {
+    function transferFrom(address _from, address _to, uint256 _value) onlyPayloadSize(3) public returns (bool) {
         uint256 _allowance = allowance[_from][msg.sender];
         
         // Check (_value <= _allowance) is already done in safeSub(_allowance, _value)
@@ -122,7 +122,7 @@ contract StandardToken is ERC20, SafeMath {
      * @param _spender The address which will spend the funds.
      * @param _value The amount of tokens to be spent.
      */
-    function approve(address _spender, uint256 _value) public returns (bool) {
+    function approve(address _spender, uint256 _value) onlyPayloadSize(2) onlyPayloadSize(2) public returns (bool) {
         // To change the approve amount you first have to reduce the addresses`
         // allowance to zero by calling `approve(_spender, 0)` if it is not
         // already 0 to mitigate the race condition described here:
@@ -130,6 +130,41 @@ contract StandardToken is ERC20, SafeMath {
         require((_value == 0) || (allowance[msg.sender][_spender] == 0));
         allowance[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
+        return true;
+    }
+    
+    /**
+     * @dev Increase the amount of tokens that an owner allowed to a spender.
+     *
+     * Instead of creating two transactions and pay the gas price twice by calling approve method
+     * this method allows to increment the allowed value in one step 
+     * without being vulnerable to multiple withdrawals.
+     * @param _spender The address which will spend the funds.
+     * @param _addedValue The amount of tokens to increase the allowance by.
+     */
+    function increaseApproval(address _spender, uint _addedValue) onlyPayloadSize(2) public returns (bool) {
+        allowance[msg.sender][_spender] = safeAdd(allowance[msg.sender][_spender], _addedValue);
+        Approval(msg.sender, _spender, allowance[msg.sender][_spender]);
+        return true;
+    }
+
+    /**
+     * @dev Decrease the amount of tokens that an owner allowed to a spender.
+     *
+     * Instead of creating two transactions and pay the gas price twice by calling approve method
+     * this method allows to decrease the allowed value in one step 
+     * without being vulnerable to multiple withdrawals.
+     * @param _spender The address which will spend the funds.
+     * @param _subtractedValue The amount of tokens to decrease the allowance by.
+     */
+    function decreaseApproval(address _spender, uint _subtractedValue) onlyPayloadSize(2) public returns (bool) {
+        uint256 currentValue = allowance[msg.sender][_spender];
+        if (_subtractedValue > currentValue) {
+            allowance[msg.sender][_spender] = 0;
+        } else {
+            allowance[msg.sender][_spender] = safeSub(currentValue, _subtractedValue);
+        }
+        Approval(msg.sender, _spender, allowance[msg.sender][_spender]);
         return true;
     }
 }
@@ -368,11 +403,13 @@ contract Pausable is Ownable {
  */
 contract PausableToken is StandardToken, Pausable {
     function transfer(address _to, uint256 _value) whenNotPaused public returns (bool) {
+        // Call StandardToken.transfer()
         super.transfer(_to, _value);
         return true;
     }
 
     function transferFrom(address _from, address _to, uint256 _value) whenNotPaused public returns (bool) {
+        // Call StandardToken.transferFrom()
         super.transferFrom(_from, _to, _value);
         return true;
     }
@@ -560,8 +597,8 @@ contract Withdrawable is Ownable {
 contract IPCToken is UpgradeableToken, CrowdsaleToken, Withdrawable {
 
     // Public variables of the token
-    string public name = "Hallo";
-    string public symbol = "Hi";
+    string public name = "International PayReward Coin";
+    string public symbol = "IPC";
     uint8 public decimals = 12;
     // Distributions of the total supply
     // 264 mio for crowdsale
