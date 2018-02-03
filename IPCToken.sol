@@ -159,6 +159,7 @@ contract StandardToken is ERC20, SafeMath {
      */
     function decreaseApproval(address _spender, uint _subtractedValue) onlyPayloadSize(2) public returns (bool) {
         uint256 currentValue = allowance[msg.sender][_spender];
+        require(currentValue > 0);
         if (_subtractedValue > currentValue) {
             allowance[msg.sender][_spender] = 0;
         } else {
