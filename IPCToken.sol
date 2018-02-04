@@ -421,7 +421,7 @@ contract PausableToken is StandardToken, Pausable {
  * @title PurchasableToken
  * @dev Allows buying IPC token from this contract
  */
-contract PurchasableToken is PausableToken {
+contract PurchasableToken is StandardToken, Pausable {
     event PurchaseUnlocked();
     event PurchaseLocked();
     event UpdatedExchangeRate(uint256 newRate);
@@ -519,7 +519,7 @@ contract PurchasableToken is PausableToken {
  * @title CrowdsaleToken
  * @dev Allows token transfer after the crowdsale has ended
  */
-contract CrowdsaleToken is PurchasableToken {
+contract CrowdsaleToken is PausableToken {
     
     address public icoAgent;
     bool public crowdsaleLock = true;
@@ -597,11 +597,11 @@ contract Withdrawable is Ownable {
  * @dev IPC Token contract
  * @author Paysura - <contact@paysura.com>
  */
-contract IPCToken is UpgradeableToken, CrowdsaleToken, Withdrawable {
+contract IPCToken is UpgradeableToken, PurchasableToken, CrowdsaleToken, Withdrawable {
 
     // Public variables of the token
-    string public name = "International PayReward Coin";
-    string public symbol = "IPC";
+    string public name = "Alphabet";
+    string public symbol = "ABCD";
     uint8 public decimals = 12;
     // Distributions of the total supply
     // 264 mio for crowdsale
