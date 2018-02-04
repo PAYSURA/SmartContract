@@ -122,7 +122,7 @@ contract StandardToken is ERC20, SafeMath {
      * @param _spender The address which will spend the funds.
      * @param _value The amount of tokens to be spent.
      */
-    function approve(address _spender, uint256 _value) onlyPayloadSize(2) onlyPayloadSize(2) public returns (bool) {
+    function approve(address _spender, uint256 _value) onlyPayloadSize(2) public returns (bool) {
         // To change the approve amount you first have to reduce the addresses`
         // allowance to zero by calling `approve(_spender, 0)` if it is not
         // already 0 to mitigate the race condition described here:
@@ -600,8 +600,8 @@ contract Withdrawable is Ownable {
 contract IPCToken is UpgradeableToken, PurchasableToken, CrowdsaleToken, Withdrawable {
 
     // Public variables of the token
-    string public name = "Alphabet";
-    string public symbol = "ABCD";
+    string public name = "International PayReward Coin";
+    string public symbol = "IPC";
     uint8 public decimals = 12;
     // Distributions of the total supply
     // 264 mio for crowdsale
