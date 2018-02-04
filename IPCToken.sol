@@ -142,7 +142,7 @@ contract StandardToken is ERC20, SafeMath {
      * @param _spender The address which will spend the funds.
      * @param _addedValue The amount of tokens to increase the allowance by.
      */
-    function increaseApproval(address _spender, uint _addedValue) onlyPayloadSize(2) public returns (bool) {
+    function increaseApproval(address _spender, uint256 _addedValue) onlyPayloadSize(2) public returns (bool) {
         allowance[msg.sender][_spender] = safeAdd(allowance[msg.sender][_spender], _addedValue);
         Approval(msg.sender, _spender, allowance[msg.sender][_spender]);
         return true;
@@ -157,7 +157,7 @@ contract StandardToken is ERC20, SafeMath {
      * @param _spender The address which will spend the funds.
      * @param _subtractedValue The amount of tokens to decrease the allowance by.
      */
-    function decreaseApproval(address _spender, uint _subtractedValue) onlyPayloadSize(2) public returns (bool) {
+    function decreaseApproval(address _spender, uint256 _subtractedValue) onlyPayloadSize(2) public returns (bool) {
         uint256 currentValue = allowance[msg.sender][_spender];
         require(currentValue > 0);
         if (_subtractedValue > currentValue) {
@@ -482,14 +482,16 @@ contract PurchasableToken is PausableToken {
      * @dev called by the owner to make the purchase preparations 
      * ('approve' must be called separately from 'vendorWallet') 
      */
-    function setPurchaseValuesAndUnlock(uint256 newExchangeRate, 
-                                        uint256 newMinimumWeiAmount, 
-                                        address newVendorWallet,
-                                        bool releasePurchase) onlyOwner public returns (bool) {
+    function setPurchaseValues( uint256 newExchangeRate, 
+                                uint256 newMinimumWeiAmount, 
+                                address newVendorWallet,
+                                bool releasePurchase) onlyOwner public returns (bool) {
         setExchangeRate(newExchangeRate);
         setMinimumWeiAmount(newMinimumWeiAmount);
         setVendorWallet(newVendorWallet);
-        if (releasePurchase) unlockPurchase();
+        // if purchase is already unlocked then 'releasePurchase' 
+        // doesn't change anything and can be set to true or false.
+        if (releasePurchase && !purchasable) unlockPurchase();
         return true;
     }
     
