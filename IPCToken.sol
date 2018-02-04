@@ -25,7 +25,7 @@ contract SafeMath {
 
     function safeAdd(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
-        assert(c >= a);
+        assert(c >= a && c >= b);
         return c;
     }
 }
@@ -55,15 +55,15 @@ contract ERC20 {
  */
 contract StandardToken is ERC20, SafeMath {
     
-    mapping (address => uint256) public balanceOf;
-    mapping (address => mapping (address => uint256)) public allowance; 
+    mapping (address => uint256) public balances;
+    mapping (address => mapping (address => uint256)) public allowed; 
     
     function balanceOf(address _owner) public constant returns (uint256){
-        return balanceOf[_owner];
+        return balances[_owner];
     }
     
     function allowance(address _owner, address _spender) public constant returns (uint256){
-        return allowance[_owner][_spender];
+        return allowed[_owner][_spender];
     }
     
     /**
@@ -86,9 +86,9 @@ contract StandardToken is ERC20, SafeMath {
             // Prevent transfer to this contract
             require(_to != address(this));
             // Check if the sender has enough and subtract from the sender by using safeSub
-            balanceOf[_from] = safeSub(balanceOf[_from], _value);
+            balances[_from] = safeSub(balances[_from], _value);
             // check for overflows and add the same value to the recipient by using safeAdd
-            balanceOf[_to] = safeAdd(balanceOf[_to], _value);
+            balances[_to] = safeAdd(balances[_to], _value);
             Transfer(_from, _to, _value);
     }
 
@@ -109,10 +109,10 @@ contract StandardToken is ERC20, SafeMath {
      * @param _value uint the amout of tokens to be transfered
      */
     function transferFrom(address _from, address _to, uint256 _value) onlyPayloadSize(3) public returns (bool) {
-        uint256 _allowance = allowance[_from][msg.sender];
+        uint256 _allowance = allowed[_from][msg.sender];
         
         // Check (_value <= _allowance) is already done in safeSub(_allowance, _value)
-        allowance[_from][msg.sender] = safeSub(_allowance, _value);
+        allowed[_from][msg.sender] = safeSub(_allowance, _value);
         safeTransfer(_from, _to, _value);
         return true;
     }
@@ -127,8 +127,8 @@ contract StandardToken is ERC20, SafeMath {
         // allowance to zero by calling `approve(_spender, 0)` if it is not
         // already 0 to mitigate the race condition described here:
         // https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-        require((_value == 0) || (allowance[msg.sender][_spender] == 0));
-        allowance[msg.sender][_spender] = _value;
+        require((_value == 0) || (allowed[msg.sender][_spender] == 0));
+        allowed[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         return true;
     }
@@ -139,12 +139,13 @@ contract StandardToken is ERC20, SafeMath {
      * Instead of creating two transactions and pay the gas price twice by calling approve method
      * this method allows to increment the allowed value in one step 
      * without being vulnerable to multiple withdrawals.
+     * From MonolithDAO Token.sol
      * @param _spender The address which will spend the funds.
      * @param _addedValue The amount of tokens to increase the allowance by.
      */
     function increaseApproval(address _spender, uint256 _addedValue) onlyPayloadSize(2) public returns (bool) {
-        allowance[msg.sender][_spender] = safeAdd(allowance[msg.sender][_spender], _addedValue);
-        Approval(msg.sender, _spender, allowance[msg.sender][_spender]);
+        allowed[msg.sender][_spender] = safeAdd(allowed[msg.sender][_spender], _addedValue);
+        Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 
@@ -154,18 +155,19 @@ contract StandardToken is ERC20, SafeMath {
      * Instead of creating two transactions and pay the gas price twice by calling approve method
      * this method allows to decrease the allowed value in one step 
      * without being vulnerable to multiple withdrawals.
+     * From MonolithDAO Token.sol
      * @param _spender The address which will spend the funds.
      * @param _subtractedValue The amount of tokens to decrease the allowance by.
      */
     function decreaseApproval(address _spender, uint256 _subtractedValue) onlyPayloadSize(2) public returns (bool) {
-        uint256 currentValue = allowance[msg.sender][_spender];
+        uint256 currentValue = allowed[msg.sender][_spender];
         require(currentValue > 0);
         if (_subtractedValue > currentValue) {
-            allowance[msg.sender][_spender] = 0;
+            allowed[msg.sender][_spender] = 0;
         } else {
-            allowance[msg.sender][_spender] = safeSub(currentValue, _subtractedValue);
+            allowed[msg.sender][_spender] = safeSub(currentValue, _subtractedValue);
         }
-        Approval(msg.sender, _spender, allowance[msg.sender][_spender]);
+        Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
         return true;
     }
 }
@@ -250,7 +252,7 @@ contract UpgradeableToken is StandardToken {
         // Validate input value.
         require(value != 0);
 
-        balanceOf[msg.sender] = safeSub(balanceOf[msg.sender], value);
+        balances[msg.sender] = safeSub(balances[msg.sender], value);
 
         // Take tokens out from circulation
         totalSupply = safeSub(totalSupply, value);
@@ -500,11 +502,11 @@ contract PurchasableToken is StandardToken, Pausable {
         require(msg.value >= minimumWeiAmount);
         uint256 tokenAmount = safeMul(msg.value, exchangeRate);
         tokenAmount = safeDiv(tokenAmount, 1 ether);
-        uint256 _allowance = allowance[vendorWallet][this];
+        uint256 _allowance = allowed[vendorWallet][this];
         // Check (tokenAmount <= _allowance) is already done in safeSub(_allowance, tokenAmount)
-        allowance[vendorWallet][this] = safeSub(_allowance, tokenAmount);
-        balanceOf[msg.sender] = safeAdd(balanceOf[msg.sender], tokenAmount);
-        balanceOf[vendorWallet] = safeSub(balanceOf[vendorWallet], tokenAmount);
+        allowed[vendorWallet][this] = safeSub(_allowance, tokenAmount);
+        balances[msg.sender] = safeAdd(balances[msg.sender], tokenAmount);
+        balances[vendorWallet] = safeSub(balances[vendorWallet], tokenAmount);
         Transfer(vendorWallet, msg.sender, tokenAmount);
         return tokenAmount;
     }
@@ -628,9 +630,9 @@ contract IPCToken is UpgradeableToken, PurchasableToken, CrowdsaleToken, Withdra
         address addressOfDev
         ) public UpgradeableToken(msg.sender) CrowdsaleToken(addressOfCrBen) {
         // Assign the initial tokens to the addresses
-        balanceOf[addressOfCrBen] = cr;
-        balanceOf[addressOfRew] = rew;
-        balanceOf[addressOfDev] = dev;
+        balances[addressOfCrBen] = cr;
+        balances[addressOfRew] = rew;
+        balances[addressOfDev] = dev;
     }
     
     /**
