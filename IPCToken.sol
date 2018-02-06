@@ -132,6 +132,20 @@ contract StandardToken is ERC20, SafeMath {
         Approval(msg.sender, _spender, _value);
         return true;
     }
+}
+
+
+contract ApproveAndCallFallBack {
+    function receiveApproval(address from, uint256 _amount, address _token, bytes _data) public;
+}
+
+
+/**
+ * @title ExtendedERC20
+ * 
+ * @dev Additional functions to ERC20
+ */
+contract ExtendedERC20 is StandardToken {
     
     /**
      * @dev Increase the amount of tokens that an owner allowed to a spender.
@@ -168,6 +182,19 @@ contract StandardToken is ERC20, SafeMath {
             allowed[msg.sender][_spender] = safeSub(currentValue, _subtractedValue);
         }
         Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+        return true;
+    }
+    
+    /** @dev `msg.sender` approves `_spender` to send `_amount` tokens on
+     *  its behalf, and then a function is triggered in the contract that is
+     *  being approved, `_spender`. This allows users to use their tokens to
+     *  interact with contracts in one function call instead of two
+     * @param _spender The address of the contract able to transfer the tokens
+     * @param _amount The amount of tokens to be approved for transfer
+     */
+    function approveAndCall(address _spender, uint256 _amount, bytes _extraData) onlyPayloadSize(2) public returns (bool success) {
+        require(approve(_spender, _amount));
+        ApproveAndCallFallBack(_spender).receiveApproval(msg.sender, _amount, this, _extraData);
         return true;
     }
 }
@@ -508,7 +535,7 @@ contract PurchasableToken is StandardToken, Pausable {
         balances[msg.sender] = safeAdd(balances[msg.sender], tokenAmount);
         balances[vendorWallet] = safeSub(balances[vendorWallet], tokenAmount);
         Transfer(vendorWallet, msg.sender, tokenAmount);
-        return tokenAmount;
+        return tokenAmount; 
     }
     
     function () payable public {
@@ -523,22 +550,23 @@ contract PurchasableToken is StandardToken, Pausable {
  */
 contract CrowdsaleToken is PausableToken {
     
-    address public icoAgent;
+    // addresses that will be allowed to transfer tokens before and during crowdsale
+    mapping (address => bool) public icoAgents;
     bool public crowdsaleLock = true;
 
-    /**
-     * @dev modifier to allow token transfer only when '_sender' is icoAgent or crowdsale has ended 
-     */
-    modifier canTransfer(address _sender) {
-        require(!crowdsaleLock || _sender == icoAgent);
-        _;
-    }
-    
     /**
      * @dev Can only be called by the icoAgent
      */
     modifier onlyIcoAgent {
-        require(msg.sender == icoAgent);
+        require(isIcoAgent(msg.sender));
+        _;
+    }
+    
+    /**
+     * @dev modifier to allow token transfer only when '_sender' is icoAgent or crowdsale has ended 
+     */
+    modifier canTransfer(address _sender) {
+        require(!crowdsaleLock || isIcoAgent(_sender));
         _;
     }
     
@@ -546,19 +574,27 @@ contract CrowdsaleToken is PausableToken {
      * @dev Construction with an icoAgent
      */
     function CrowdsaleToken(address _icoAgent) public {
-        icoAgent = _icoAgent;
-    }
-
-    /** @dev called by the owner to set a new icoAgent */
-    function setIcoAgent(address _icoAgent) onlyOwner public returns (bool) {
-        icoAgent = _icoAgent;
-        return true;
+        icoAgents[_icoAgent] = true;
     }
     
-    /** @dev called by the icoAgent to release token transfer */
+    /** @dev called by an icoAgent to release token transfer */
     function releaseTokenTransfer() onlyIcoAgent public returns (bool) {
         crowdsaleLock = false;
         return true;
+    }
+    
+    /** 
+     * @dev called by the owner to set a new _icoAgent or remove one
+     * 
+     */
+    function setIcoAgent(address _icoAgent, bool allowTransfer) onlyOwner public returns (bool) {
+        icoAgents[_icoAgent] = allowTransfer;
+        return true; 
+    }
+    
+    /** @dev return true if 'address' is an icoAgent */
+    function isIcoAgent(address _address) public view returns (bool) {
+        return icoAgents[_address];
     }
 
     function transfer(address _to, uint _value) canTransfer(msg.sender) public returns (bool) {
@@ -574,13 +610,13 @@ contract CrowdsaleToken is PausableToken {
 
 
 /**
- * @title Withdrawable
- * @dev Contract allows to withdraw ether and erc20 token
+ * @title CanSendFromContract
+ * @dev Contract allows to send ether and erc20 compatible tokens
  */
-contract Withdrawable is Ownable {
+contract CanSendFromContract is Ownable {
     
-    /** @dev withdraw erc20 token from this contract */
-    function withdrawToken(address beneficiary, address _token) onlyOwner public {
+    /** @dev send erc20 token from this contract */
+    function sendToken(address beneficiary, address _token) onlyOwner public {
         ERC20 token = ERC20(_token);
         uint256 amount = token.balanceOf(this);
         require(amount>0);
@@ -588,7 +624,7 @@ contract Withdrawable is Ownable {
     }
     
     /** @dev called by the owner to transfer 'weiAmount' wei to 'beneficiary' */
-    function withdrawEther(address beneficiary, uint256 weiAmount) onlyOwner public {
+    function sendEther(address beneficiary, uint256 weiAmount) onlyOwner public {
         beneficiary.transfer(weiAmount);
     }
 }
@@ -599,7 +635,7 @@ contract Withdrawable is Ownable {
  * @dev IPC Token contract
  * @author Paysura - <contact@paysura.com>
  */
-contract IPCToken is UpgradeableToken, PurchasableToken, CrowdsaleToken, Withdrawable {
+contract IPCToken is ExtendedERC20, UpgradeableToken, PurchasableToken, CrowdsaleToken, CanSendFromContract {
 
     // Public variables of the token
     string public name = "International PayReward Coin";
