@@ -55,8 +55,8 @@ contract ERC20 {
  */
 contract StandardToken is ERC20, SafeMath {
     
-    mapping (address => uint256) public balances;
-    mapping (address => mapping (address => uint256)) public allowed; 
+    mapping (address => uint256) balances;
+    mapping (address => mapping (address => uint256)) allowed; 
     
     function balanceOf(address _owner) public constant returns (uint256){
         return balances[_owner];
@@ -199,6 +199,7 @@ contract ExtendedERC20 is StandardToken {
     }
 }
 
+
 /**
  * Upgrade agent interface inspired by Lunyr.
  * 
@@ -217,6 +218,7 @@ contract UpgradeAgent {
 
     function upgradeFrom(address _from, uint256 _value) public;
 }
+
 
 /**
  * A token upgrade mechanism where users can opt-in amount of tokens to the next 
@@ -427,6 +429,7 @@ contract Pausable is Ownable {
     }
 }
 
+
 /**
  * @title PausableToken
  * @dev StandardToken with pausable transfers
@@ -551,7 +554,7 @@ contract PurchasableToken is StandardToken, Pausable {
 contract CrowdsaleToken is PausableToken {
     
     // addresses that will be allowed to transfer tokens before and during crowdsale
-    mapping (address => bool) public icoAgents;
+    mapping (address => bool) icoAgents;
     bool public crowdsaleLock = true;
 
     /**
@@ -587,8 +590,8 @@ contract CrowdsaleToken is PausableToken {
      * @dev called by the owner to set a new _icoAgent or remove one
      * 
      */
-    function setIcoAgent(address _icoAgent, bool allowTransfer) onlyOwner public returns (bool) {
-        icoAgents[_icoAgent] = allowTransfer;
+    function setIcoAgent(address _icoAgent, bool _allowTransfer) onlyOwner public returns (bool) {
+        icoAgents[_icoAgent] = _allowTransfer;
         return true; 
     }
     
@@ -638,8 +641,8 @@ contract CanSendFromContract is Ownable {
 contract IPCToken is ExtendedERC20, UpgradeableToken, PurchasableToken, CrowdsaleToken, CanSendFromContract {
 
     // Public variables of the token
-    string public name = "International PayReward Coin";
-    string public symbol = "IPC";
+    string public name = "OLEEE";
+    string public symbol = "OLE para";
     uint8 public decimals = 12;
     // Distributions of the total supply
     // 264 mio for crowdsale
