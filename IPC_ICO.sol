@@ -38,7 +38,6 @@ contract SafeMath {
 contract ERC20Basic {
     uint256 public totalSupply;
     uint8 public decimals;
-    mapping (address => uint256) public balances;
     function balanceOf(address _owner) public constant returns (uint256 _balance);
     function transfer(address _to, uint256 _value) public returns (bool _succes);
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
@@ -171,7 +170,7 @@ contract Crowdsale is SafeMath {
     
     // withdraw remaining token amount after crowdsale has ended
     function withdrawToken() onlyCrowdsaleAgent public returns (bool) {
-        uint256 remainingToken = token.balances(this);
+        uint256 remainingToken = token.balanceOf(this);
         require(hasEnded() && remainingToken > 0);
         token.transfer(crowdsaleAgent, remainingToken);
         return true;
