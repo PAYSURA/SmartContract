@@ -192,7 +192,7 @@ contract ExtendedERC20 is StandardToken {
      * @param _spender The address of the contract able to transfer the tokens
      * @param _amount The amount of tokens to be approved for transfer
      */
-    function approveAndCall(address _spender, uint256 _amount, bytes _extraData) onlyPayloadSize(2) public returns (bool success) {
+    function approveAndCall(address _spender, uint256 _amount, bytes _extraData) public returns (bool success) {
         require(approve(_spender, _amount));
         ApproveAndCallFallBack(_spender).receiveApproval(msg.sender, _amount, this, _extraData);
         return true;
