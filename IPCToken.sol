@@ -656,11 +656,11 @@ contract IPCToken is ExtendedERC20, UpgradeableToken, PurchasableToken, Crowdsal
     string public symbol = "IPC";
     uint8 public decimals = 12;
     // Distributions of the total supply
-    // 264 mio IPC tokens will be distributed during crowdsale (60%)
+    // 264 mio IPC tokens will be distributed during crowdsale
     uint256 public cr = 264000000 * (10 ** uint256(decimals));
-    // 110 mio reserved for community in the reward program (25%)
+    // 110 mio reserved for community in the reward program
     uint256 public rew = 110000000 * (10 ** uint256(decimals));
-    // 66 mio for advisors and partners (15%)
+    // 66 mio for advisors and partnersup
     uint256 public dev = 66000000 * (10 ** uint256(decimals));
     // total supply of 440 mio -> 85% for community.
     uint256 public totalSupply = cr + dev + rew;    
