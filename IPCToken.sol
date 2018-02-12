@@ -568,6 +568,7 @@ contract CrowdsaleToken is PausableToken {
     
     // addresses that will be allowed to transfer tokens before and during crowdsale
     mapping (address => bool) icoAgents;
+    // token transfer locked until crowdsale is finished
     bool public crowdsaleLock = true;
 
     /**
@@ -593,7 +594,7 @@ contract CrowdsaleToken is PausableToken {
         icoAgents[_icoAgent] = true;
     }
     
-    /** @dev called by an icoAgent to release token transfer */
+    /** @dev called by an icoAgent to release token transfer after crowdsale */
     function releaseTokenTransfer() onlyIcoAgent public returns (bool) {
         crowdsaleLock = false;
         return true;
@@ -655,13 +656,13 @@ contract IPCToken is ExtendedERC20, UpgradeableToken, PurchasableToken, Crowdsal
     string public symbol = "IPC";
     uint8 public decimals = 12;
     // Distributions of the total supply
-    // 264 mio for crowdsale
+    // 264 mio IPC tokens will be distributed during crowdsale (60%)
     uint256 public cr = 264000000 * (10 ** uint256(decimals));
-    // 110 mio reserved for community / reward program
+    // 110 mio reserved for community in the reward program (25%)
     uint256 public rew = 110000000 * (10 ** uint256(decimals));
-    // 66 mio for advisors and partners
+    // 66 mio for advisors and partners (15%)
     uint256 public dev = 66000000 * (10 ** uint256(decimals));
-    // total supply of 440 mio
+    // total supply of 440 mio -> 85% for community.
     uint256 public totalSupply = cr + dev + rew;    
 
     event UpdatedTokenInformation(string newName, string newSymbol);
