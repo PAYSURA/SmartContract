@@ -549,8 +549,8 @@ contract PurchasableToken is StandardToken, Pausable {
         allowed[vendorWallet][this] = safeSub(_allowance, tokenAmount);
         balances[beneficiary] = safeAdd(balances[beneficiary], tokenAmount);
         balances[vendorWallet] = safeSub(balances[vendorWallet], tokenAmount);
-        TokenPurchase(msg.sender, beneficiary, weiAmount, tokenAmount);
         vendorWallet.transfer(weiAmount);
+        TokenPurchase(msg.sender, beneficiary, weiAmount, tokenAmount);
         return tokenAmount; 
     }
     
