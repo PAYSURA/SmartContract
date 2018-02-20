@@ -59,10 +59,7 @@ contract Crowdsale is SafeMath {
     
     // amount of raised money in wei
     uint256 public weiRaised;
-    
-    // ether rate in USD-Cent
-    uint etherRateInUSDCent;
-    
+
     // minimum amount of ether to participate in ICO
     uint256 minimumEtherAmount = 0.2 ether;
 
@@ -74,11 +71,11 @@ contract Crowdsale is SafeMath {
     uint256 public deadlineThree = 1520773200; //(GMT): Sunday, 11. March 2018 13:00:00
     uint256 public endTime = 1522674000;       //(GMT): Monday, 2. April 2018 13:00:00 
     
-    // token price in USD Cent during crowdsale
-    uint public bonusOne = 12; 
-    uint public bonusTwo = 14;
-    uint public bonusThree = 16;
-    uint public finalSale = 18;
+    // token amount for one ether during crowdsale
+    uint public bonusOne = 7500; 
+    uint public bonusTwo = 6400;
+    uint public bonusThree = 5600;
+    uint public finalSale = 5000;
 
     // arrays with all distributed token balance during Crowdsale
     mapping(address => uint256) public distribution;
@@ -97,12 +94,10 @@ contract Crowdsale is SafeMath {
         _;
     }    
     
-    function Crowdsale(uint _etherRateInUSDCent, address _crowdsaleAgent, address _token) public {
-        require(_etherRateInUSDCent > 0);
+    function Crowdsale(address _crowdsaleAgent, address _token) public {
         require(_crowdsaleAgent != address(0));
         require(_token != address(0));
 
-        etherRateInUSDCent = _etherRateInUSDCent;
         crowdsaleAgent = _crowdsaleAgent;
         token = ERC20Basic(_token);
     }
@@ -150,15 +145,9 @@ contract Crowdsale is SafeMath {
         return true;
     }
     
-    // set exchange rate of ether
-    function setEtherRate(uint _etherRateInUSDCent) onlyCrowdsaleAgent public returns (bool) {
-        etherRateInUSDCent = _etherRateInUSDCent;
-        return true;
-    }
-    
-    // set new final token rate in USD-Cent
-    function setFinalRate(uint _finalSaleInUSDCent) onlyCrowdsaleAgent public returns (bool) {
-        finalSale = _finalSaleInUSDCent;
+    // set new final token amount
+    function setFinalRate(uint _finalSale) onlyCrowdsaleAgent public returns (bool) {
+        finalSale = _finalSale;
         return true;
     }
     
@@ -178,17 +167,17 @@ contract Crowdsale is SafeMath {
 
     // Calculate the token amount from the donated ETH onsidering the bonus system.
     function calcTokenAmount(uint256 weiAmount) internal view returns (uint256) {
-        uint256 bonus;
+        uint256 price;
         if (now >= startTime && now < deadlineOne) {
-            bonus = bonusOne; 
+            price = bonusOne; 
         } else if (now >= deadlineOne && now < deadlineTwo) {
-            bonus = bonusTwo;
+            price = bonusTwo;
         } else if (now >= deadlineTwo && now < deadlineThree) {
-            bonus = bonusThree;
+            price = bonusThree;
         } else if (now >= deadlineThree && now <= endTime) {
-        	bonus = finalSale;
+        	price = finalSale;
         }
-        uint256 tokens = safeDiv(safeMul(weiAmount, etherRateInUSDCent), bonus);
+        uint256 tokens = safeMul(price, weiAmount);
         uint8 decimalCut = 18 > token.decimals() ? 18-token.decimals() : 1;
         return safeDiv(tokens, 10**uint256(decimalCut));
     }
