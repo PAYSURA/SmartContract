@@ -52,7 +52,7 @@ contract ERC20Basic {
 contract Crowdsale is SafeMath {
 
     // The token being sold
-    ERC20Basic public token;
+    ERC20Basic public token = ERC20Basic(0xa5FD4f631Ddf9C37d7B8A2c429a58bDC78abC843);
     
     // address where funds are collected
     address public crowdsaleAgent;
@@ -72,10 +72,10 @@ contract Crowdsale is SafeMath {
     uint256 public endTime = 1522674000;       //(GMT): Monday, 2. April 2018 13:00:00 
     
     // token amount for one ether during crowdsale
-    uint public bonusOne = 7500; 
-    uint public bonusTwo = 6400;
-    uint public bonusThree = 5600;
-    uint public finalSale = 5000;
+    uint public firstRate = 7500; 
+    uint public secondRate = 6400;
+    uint public thirdRate = 5600;
+    uint public finalRate = 5000;
 
     // arrays with all distributed token balance during Crowdsale
     mapping(address => uint256) public distribution;
@@ -94,12 +94,9 @@ contract Crowdsale is SafeMath {
         _;
     }    
     
-    function Crowdsale(address _crowdsaleAgent, address _token) public {
+    function Crowdsale(address _crowdsaleAgent) public {
         require(_crowdsaleAgent != address(0));
-        require(_token != address(0));
-
         crowdsaleAgent = _crowdsaleAgent;
-        token = ERC20Basic(_token);
     }
 
     // fallback function can be used to buy tokens
@@ -145,9 +142,15 @@ contract Crowdsale is SafeMath {
         return true;
     }
     
-    // set new final token amount
-    function setFinalRate(uint _finalSale) onlyCrowdsaleAgent public returns (bool) {
-        finalSale = _finalSale;
+    // set token rates
+    function setNewIPCRatesInEther(uint _firstRate, bool changeFirstRate,
+                                uint _secondRate, bool changeSecondRate,
+                                uint _thirdRate, bool changeThirdRate,
+                                uint _finaleRate, bool changeFinalRate) onlyCrowdsaleAgent public returns (bool) {
+        if(changeFirstRate) firstRate = _firstRate;
+        if(changeSecondRate) secondRate = _secondRate;
+        if(changeThirdRate) thirdRate = _thirdRate;
+        if(changeFinalRate) finalRate = _finaleRate;
         return true;
     }
     
@@ -157,25 +160,38 @@ contract Crowdsale is SafeMath {
         return true;
     }
     
-    // withdraw remaining token amount after crowdsale has ended
-    function withdrawToken() onlyCrowdsaleAgent public returns (bool) {
+    // withdraw remaining IPC token amount after crowdsale has ended
+    function withdrawRemainingIPCToken() onlyCrowdsaleAgent public returns (bool) {
         uint256 remainingToken = token.balanceOf(this);
         require(hasEnded() && remainingToken > 0);
         token.transfer(crowdsaleAgent, remainingToken);
         return true;
+    }
+    
+    // send erc20 token from this contract
+    function withdrawERC20Token(address beneficiary, address _token) onlyCrowdsaleAgent public {
+        ERC20Basic erc20Token = ERC20Basic(_token);
+        uint256 amount = erc20Token.balanceOf(this);
+        require(amount>0);
+        erc20Token.transfer(beneficiary, amount);
+    }
+    
+    // transfer 'weiAmount' wei to 'beneficiary'
+    function sendEther(address beneficiary, uint256 weiAmount) onlyCrowdsaleAgent public {
+        beneficiary.transfer(weiAmount);
     }
 
     // Calculate the token amount from the donated ETH onsidering the bonus system.
     function calcTokenAmount(uint256 weiAmount) internal view returns (uint256) {
         uint256 price;
         if (now >= startTime && now < deadlineOne) {
-            price = bonusOne; 
+            price = firstRate; 
         } else if (now >= deadlineOne && now < deadlineTwo) {
-            price = bonusTwo;
+            price = secondRate;
         } else if (now >= deadlineTwo && now < deadlineThree) {
-            price = bonusThree;
+            price = thirdRate;
         } else if (now >= deadlineThree && now <= endTime) {
-        	price = finalSale;
+        	price = finalRate;
         }
         uint256 tokens = safeMul(price, weiAmount);
         uint8 decimalCut = 18 > token.decimals() ? 18-token.decimals() : 1;
@@ -187,7 +203,7 @@ contract Crowdsale is SafeMath {
         crowdsaleAgent.transfer(msg.value);
     }
 
-    // return true if the transaction can buy tokens
+    // return true if valid purchase
     function validPurchase() internal view returns (bool) {
         bool withinPeriod = now >= startTime && now <= endTime;
         bool isMinimumAmount = msg.value >= minimumEtherAmount;
