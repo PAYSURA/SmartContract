@@ -55,7 +55,7 @@ contract Crowdsale is SafeMath {
     ERC20Basic public token = ERC20Basic(0xa5FD4f631Ddf9C37d7B8A2c429a58bDC78abC843);
     
     // address where funds are collected
-    address public crowdsaleAgent;
+    address public crowdsaleAgent = 0x783fE4521c2164eB6a7972122E7E33a1D1A72799;
     
     // amount of raised money in wei
     uint256 public weiRaised;
@@ -92,11 +92,6 @@ contract Crowdsale is SafeMath {
     modifier onlyCrowdsaleAgent {
         require(msg.sender == crowdsaleAgent);
         _;
-    }    
-    
-    function Crowdsale(address _crowdsaleAgent) public {
-        require(_crowdsaleAgent != address(0));
-        crowdsaleAgent = _crowdsaleAgent;
     }
 
     // fallback function can be used to buy tokens
