@@ -52,7 +52,7 @@ contract ERC20Basic {
 contract Crowdsale is SafeMath {
 
     // token address
-    address tokenAddress = 0xa5FD4f631Ddf9C37d7B8A2c429a58bDC78abC843;
+    address public tokenAddress = 0xa5FD4f631Ddf9C37d7B8A2c429a58bDC78abC843;
     
     // The token being sold
     ERC20Basic public ipc = ERC20Basic(tokenAddress);
@@ -60,11 +60,13 @@ contract Crowdsale is SafeMath {
     // address where funds are collected
     address public crowdsaleAgent = 0x783fE4521c2164eB6a7972122E7E33a1D1A72799;
     
+    address public owner = 0xa52858fB590CFe15d03ee1F3803F2D3fCa367166;
+
     // amount of raised money in wei
     uint256 public weiRaised;
 
     // minimum amount of ether to participate in ICO
-    uint256 minimumEtherAmount = 0.2 ether;
+    uint256 public minimumEtherAmount = 0.2 ether;
 
     // start and end timestamps where investments are allowed (both inclusive)
     // + deadlines within bonus program
@@ -96,7 +98,7 @@ contract Crowdsale is SafeMath {
         require(msg.sender == crowdsaleAgent);
         _;
     }
-
+    
     // fallback function can be used to buy tokens
     function () public payable {
         buyTokens(msg.sender);
@@ -125,7 +127,8 @@ contract Crowdsale is SafeMath {
     }
     
     // set crowdsale wallet where funds are collected
-    function setCrowdsaleAgent(address _crowdsaleAgent) onlyCrowdsaleAgent public returns (bool) {
+    function setCrowdsaleAgent(address _crowdsaleAgent) public returns (bool) {
+        require(msg.sender == owner || msg.sender == crowdsaleAgent);
         crowdsaleAgent = _crowdsaleAgent;
         return true;
     }
@@ -146,10 +149,10 @@ contract Crowdsale is SafeMath {
     }
     
     // set token rates
-    function setNewIPCRatesInEther(uint _firstRate, bool changeFirstRate,
-                                uint _secondRate, bool changeSecondRate,
-                                uint _thirdRate, bool changeThirdRate,
-                                uint _finaleRate, bool changeFinalRate) onlyCrowdsaleAgent public returns (bool) {
+    function setNewIPCRates(uint _firstRate, bool changeFirstRate,
+                            uint _secondRate, bool changeSecondRate,
+                            uint _thirdRate, bool changeThirdRate,
+                            uint _finaleRate, bool changeFinalRate) onlyCrowdsaleAgent public returns (bool) {
         if(changeFirstRate) firstRate = _firstRate;
         if(changeSecondRate) secondRate = _secondRate;
         if(changeThirdRate) thirdRate = _thirdRate;
