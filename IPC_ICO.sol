@@ -51,8 +51,11 @@ contract ERC20Basic {
  */
 contract Crowdsale is SafeMath {
 
+    // token address
+    address tokenAddress = 0xa5FD4f631Ddf9C37d7B8A2c429a58bDC78abC843;
+    
     // The token being sold
-    ERC20Basic public token = ERC20Basic(0xa5FD4f631Ddf9C37d7B8A2c429a58bDC78abC843);
+    ERC20Basic public ipc = ERC20Basic(tokenAddress);
     
     // address where funds are collected
     address public crowdsaleAgent = 0x783fE4521c2164eB6a7972122E7E33a1D1A72799;
@@ -72,12 +75,12 @@ contract Crowdsale is SafeMath {
     uint256 public endTime = 1522674000;       //(GMT): Monday, 2. April 2018 13:00:00 
     
     // token amount for one ether during crowdsale
-    uint public firstRate = 7500; 
-    uint public secondRate = 6400;
-    uint public thirdRate = 5600;
-    uint public finalRate = 5000;
+    uint public firstRate = 6000; 
+    uint public secondRate = 5500;
+    uint public thirdRate = 5000;
+    uint public finalRate = 4400;
 
-    // arrays with all distributed token balance during Crowdsale
+    // token distribution during Crowdsale
     mapping(address => uint256) public distribution;
     
     /**
@@ -102,6 +105,8 @@ contract Crowdsale is SafeMath {
     // token purchase function
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != address(0));
+        require(beneficiary != address(this));
+        require(beneficiary != tokenAddress);
         require(validPurchase());
         uint256 weiAmount = msg.value;
         // calculate token amount to be transferred to beneficiary
@@ -109,7 +114,7 @@ contract Crowdsale is SafeMath {
         // update state
         weiRaised = safeAdd(weiRaised, weiAmount);
         distribution[beneficiary] = safeAdd(distribution[beneficiary], tokens);
-        token.transfer(beneficiary, tokens);
+        ipc.transfer(beneficiary, tokens);
         TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
         forwardFunds();
     }
@@ -119,22 +124,25 @@ contract Crowdsale is SafeMath {
         return now > endTime;
     }
     
-    // set crowdsale begin
-    function setStartTime(uint256 _startTime) onlyCrowdsaleAgent public returns (bool) {
-        startTime = _startTime;
-        return true;
-    }
-    
-    // set crowdsale end
-    function setEndTime(uint256 _endTime) onlyCrowdsaleAgent public returns (bool) {
-        endTime = _endTime;
-        return true;
-    }
-
     // set crowdsale wallet where funds are collected
     function setCrowdsaleAgent(address _crowdsaleAgent) onlyCrowdsaleAgent public returns (bool) {
         crowdsaleAgent = _crowdsaleAgent;
         return true;
+    }
+    
+    // set ico times
+    function setTimes(  uint256 _startTime, bool changeStartTime,
+                        uint256 firstDeadline, bool changeFirstDeadline,
+                        uint256 secondDeadline, bool changeSecondDeadline,
+                        uint256 thirdDeadline, bool changeThirdDeadline,
+                        uint256 _endTime, bool changeEndTime) onlyCrowdsaleAgent public returns (bool) {
+        if(changeStartTime) startTime = _startTime;
+        if(changeFirstDeadline) deadlineOne = firstDeadline;
+        if(changeSecondDeadline) deadlineTwo = secondDeadline;
+        if(changeThirdDeadline) deadlineThree = thirdDeadline;
+        if(changeEndTime) endTime = _endTime;
+        return true;
+                            
     }
     
     // set token rates
@@ -157,9 +165,9 @@ contract Crowdsale is SafeMath {
     
     // withdraw remaining IPC token amount after crowdsale has ended
     function withdrawRemainingIPCToken() onlyCrowdsaleAgent public returns (bool) {
-        uint256 remainingToken = token.balanceOf(this);
+        uint256 remainingToken = ipc.balanceOf(this);
         require(hasEnded() && remainingToken > 0);
-        token.transfer(crowdsaleAgent, remainingToken);
+        ipc.transfer(crowdsaleAgent, remainingToken);
         return true;
     }
     
@@ -189,7 +197,7 @@ contract Crowdsale is SafeMath {
         	price = finalRate;
         }
         uint256 tokens = safeMul(price, weiAmount);
-        uint8 decimalCut = 18 > token.decimals() ? 18-token.decimals() : 1;
+        uint8 decimalCut = 18 > ipc.decimals() ? 18-ipc.decimals() : 0;
         return safeDiv(tokens, 10**uint256(decimalCut));
     }
 
@@ -202,13 +210,13 @@ contract Crowdsale is SafeMath {
     function validPurchase() internal view returns (bool) {
         bool withinPeriod = now >= startTime && now <= endTime;
         bool isMinimumAmount = msg.value >= minimumEtherAmount;
-        bool hasTokenBalance = token.balanceOf(this) > 0;
+        bool hasTokenBalance = ipc.balanceOf(this) > 0;
         return withinPeriod && isMinimumAmount && hasTokenBalance;
     }
      
     // selfdestruct crowdsale contract only after crowdsale has ended
     function killContract() onlyCrowdsaleAgent public {
-        require(hasEnded() && token.balanceOf(this) == 0);
+        require(hasEnded() && ipc.balanceOf(this) == 0);
         selfdestruct(crowdsaleAgent);
     }
 }
